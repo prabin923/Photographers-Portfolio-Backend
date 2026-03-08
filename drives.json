@@ -1,0 +1,69 @@
+[
+  {
+    "id": "1772698973168",
+    "clientName": "LensFolio Final Test",
+    "images": [
+      {
+        "id": "1772698973069-552789841-_DSC5708-1.jpg",
+        "url": "http://localhost:4000/uploads/1772698973069-552789841-_DSC5708-1.jpg",
+        "title": "_DSC5708-1.jpg",
+        "type": "image"
+      },
+      {
+        "id": "1772706039455-122634998-IMG_0405.jpg",
+        "url": "http://localhost:4000/uploads/1772706039455-122634998-IMG_0405.jpg",
+        "title": "IMG_0405.jpg",
+        "type": "image"
+      },
+      {
+        "id": "1772706039505-194853126-IMG_0406.jpg",
+        "url": "http://localhost:4000/uploads/1772706039505-194853126-IMG_0406.jpg",
+        "title": "IMG_0406.jpg",
+        "type": "image"
+      },
+      {
+        "id": "1772706039534-777635087-IMG_0420.jpg",
+        "url": "http://localhost:4000/uploads/1772706039534-777635087-IMG_0420.jpg",
+        "title": "IMG_0420.jpg",
+        "type": "image"
+      },
+      {
+        "id": "1772706039538-1996632-IMG_0428.jpeg",
+        "url": "http://localhost:4000/uploads/1772706039538-1996632-IMG_0428.jpeg",
+        "title": "IMG_0428.jpeg",
+        "type": "image"
+      },
+      {
+        "id": "1772710325018-360973312-deom.jpg",
+        "url": "http://localhost:4000/uploads/1772710325018-360973312-deom.jpg",
+        "title": "deom.jpg",
+        "type": "image"
+      }
+    ],
+    "videos": [],
+    "status": "Active",
+    "favoritesCount": "0/0",
+    "createdAt": "Mar 5, 2026",
+    "galleryType": "client",
+    "allowDownloads": true,
+    "addWatermark": false,
+    "coverColor": "#0f0f0f",
+    "coverAccent": "#e11d48",
+    "allowSelection": false,
+    "favoritesName": "Selecting photos",
+    "limitSelected": false,
+    "allowComments": false,
+    "requireEmail": true,
+    "requirePhone": false,
+    "requireInfo": false,
+    "allowReviews": true,
+    "reviewMessage": "Please write your review",
+    "askReviewAfterDownload": true,
+    "showShareButton": true,
+    "showBusinessCard": true,
+    "showNameOnCover": true,
+    "protectWithPassword": false,
+    "password": "",
+    "allowGuestAccess": false
+  }
+]

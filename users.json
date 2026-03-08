@@ -1,0 +1,16 @@
+[
+  {
+    "id": "1772689021820",
+    "name": "Prabin Kumar sharma",
+    "email": "Prabinsharma923@gmail.com",
+    "password": "$2b$10$LDjgSvfEpY0t1ZMcU2Ql/uiK3phBQyYJoqLHoaT7OBqjpQ4WUQOQK",
+    "createdAt": "2026-03-05T05:37:01.820Z"
+  },
+  {
+    "id": "1772694262916",
+    "name": "Prabin Kumar sharma",
+    "email": "prabin2720@xavier.edu.np",
+    "password": "$2b$10$rffMQCfrcn4F/zrxhs7orO1Hm9iemw.rmXWz5fd9D2pomIQE9RiHC",
+    "createdAt": "2026-03-05T07:04:22.916Z"
+  }
+]

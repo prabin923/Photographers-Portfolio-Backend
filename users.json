@@ -12,5 +12,12 @@
     "email": "prabin2720@xavier.edu.np",
     "password": "$2b$10$rffMQCfrcn4F/zrxhs7orO1Hm9iemw.rmXWz5fd9D2pomIQE9RiHC",
     "createdAt": "2026-03-05T07:04:22.916Z"
+  },
+  {
+    "id": "1773399970581",
+    "name": "Test Admin",
+    "email": "testadmin@example.com",
+    "password": "$2b$10$dWjQEwUYc53DnB9G0HsvF.FUAKyrsI/p8qmc7RL/CHot6qcwBC4JS",
+    "createdAt": "2026-03-13T11:06:10.581Z"
   }
 ]

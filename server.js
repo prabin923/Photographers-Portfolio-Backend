@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const multer = require("multer");
+const { uploadToGCS, deleteFromGCS } = require("./storage");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -77,9 +78,9 @@ function saveUserSiteSettings(userId, settings) {
 // ────────────────────────────────────────────────
 
 const PLANS = {
-    free: { id: "free", name: "Free", storageLimitGB: 5, maxGalleries: 3, price: 0, period: "forever" },
-    pro: { id: "pro", name: "Pro", storageLimitGB: 120, maxGalleries: -1, price: 12, period: "month" },
-    business: { id: "business", name: "Business", storageLimitGB: 500, maxGalleries: -1, price: 29, period: "month" },
+    free: { id: "free", name: "Starter", storageLimitGB: 120, maxGalleries: -1, price: 0, period: "forever" },
+    pro: { id: "pro", name: "Pro", storageLimitGB: 500, maxGalleries: -1, price: 12, period: "month" },
+    business: { id: "business", name: "Business", storageLimitGB: 2000, maxGalleries: -1, price: 29, period: "month" },
 };
 
 function getUserPlan(userId) {
@@ -98,28 +99,21 @@ function saveUserPlan(userId, planData) {
 }
 
 // Calculate actual storage used by a user (from their drive files)
+// Updated to use stored size if available, otherwise 0
 function calculateUserStorage(userId) {
     const drives = getUserDrives(userId);
     const site = getUserSiteSettings(userId);
     let totalBytes = 0;
 
-    // Sum up all drive media files
     for (const drive of drives) {
         const allMedia = [...(drive.images || []), ...(drive.videos || [])];
         for (const item of allMedia) {
-            const filePath = path.join(__dirname, "uploads", item.id);
-            if (fs.existsSync(filePath)) {
-                totalBytes += fs.statSync(filePath).size;
-            }
+            totalBytes += (item.size || 0);
         }
     }
 
-    // Sum up portfolio photos
     for (const photo of (site.portfolioPhotos || [])) {
-        const filePath = path.join(__dirname, "uploads", photo.id);
-        if (fs.existsSync(filePath)) {
-            totalBytes += fs.statSync(filePath).size;
-        }
+        totalBytes += (photo.size || 0);
     }
 
     return totalBytes;
@@ -159,21 +153,14 @@ function migrateLegacyData() {
     }
 }
 
-// Define Multer storage configuration
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const uploadPath = path.join(__dirname, "uploads");
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
-        }
-        cb(null, uploadPath);
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + '-' + file.originalname.trim().replace(/\s+/g, '-'));
+// Define Multer storage configuration - use memory for GCS uploads
+const storage = multer.memoryStorage();
+const upload = multer({ 
+    storage: storage,
+    limits: {
+        fileSize: 100 * 1024 * 1024 // 100MB limit
     }
 });
-const upload = multer({ storage: storage });
 
 // Helper to init/read Users DB
 function getUsers() {
@@ -463,7 +450,7 @@ app.get("/api/drives", authMiddleware, (req, res) => {
 });
 
 // Create a new drive for the logged-in user
-app.post("/api/drives", authMiddleware, upload.array("files"), (req, res) => {
+app.post("/api/drives", authMiddleware, upload.array("files"), async (req, res) => {
     try {
         const { clientName } = req.body;
         if (!clientName) {
@@ -493,12 +480,18 @@ app.post("/api/drives", authMiddleware, upload.array("files"), (req, res) => {
         const images = [];
         const videos = [];
 
-        uploadedFiles.forEach(file => {
-            const publicUrl = `http://localhost:${PORT}/uploads/${file.filename}`;
-            const item = { id: file.filename, url: publicUrl, title: file.originalname };
-            if (file.mimetype.startsWith('image/')) { item.type = 'image'; images.push(item); }
-            else if (file.mimetype.startsWith('video/')) { item.type = 'video'; videos.push(item); }
-        });
+        for (const file of uploadedFiles) {
+            const gcsResult = await uploadToGCS(file);
+            const item = { 
+                id: gcsResult.id, 
+                url: gcsResult.url, 
+                title: file.originalname,
+                type: gcsResult.type,
+                size: file.size
+            };
+            if (item.type === 'image') images.push(item);
+            else videos.push(item);
+        }
 
         const newDrive = {
             id: driveId,
@@ -523,7 +516,7 @@ app.post("/api/drives", authMiddleware, upload.array("files"), (req, res) => {
 });
 
 // Delete a drive
-app.delete("/api/drives/:id", authMiddleware, (req, res) => {
+app.delete("/api/drives/:id", authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
         const drives = getUserDrives(req.user.id);
@@ -533,14 +526,11 @@ app.delete("/api/drives/:id", authMiddleware, (req, res) => {
             return res.status(404).json({ error: "Drive not found" });
         }
 
-        // Clean up physical files
+        // Clean up GCS files
         const allMedia = [...(drive.images || []), ...(drive.videos || [])];
-        allMedia.forEach(item => {
-            const filePath = path.join(__dirname, "uploads", item.id);
-            if (fs.existsSync(filePath)) {
-                try { fs.unlinkSync(filePath); } catch (e) { console.error(`Failed to delete file: ${filePath}`, e); }
-            }
-        });
+        for (const item of allMedia) {
+            await deleteFromGCS(item.id);
+        }
 
         const newDrives = drives.filter(d => d.id !== id);
         saveUserDrives(req.user.id, newDrives);
@@ -553,7 +543,7 @@ app.delete("/api/drives/:id", authMiddleware, (req, res) => {
 });
 
 // Add more files to an existing drive
-app.patch("/api/drives/:id/upload", authMiddleware, upload.array("files"), (req, res) => {
+app.patch("/api/drives/:id/upload", authMiddleware, upload.array("files"), async (req, res) => {
     try {
         const { id } = req.params;
         const drives = getUserDrives(req.user.id);
@@ -578,12 +568,18 @@ app.patch("/api/drives/:id/upload", authMiddleware, upload.array("files"), (req,
         const newImages = [];
         const newVideos = [];
 
-        uploadedFiles.forEach(file => {
-            const publicUrl = `http://localhost:${PORT}/uploads/${file.filename}`;
-            const item = { id: file.filename, url: publicUrl, title: file.originalname };
-            if (file.mimetype.startsWith("image/")) { item.type = "image"; newImages.push(item); }
-            else if (file.mimetype.startsWith("video/")) { item.type = "video"; newVideos.push(item); }
-        });
+        for (const file of uploadedFiles) {
+            const gcsResult = await uploadToGCS(file);
+            const item = { 
+                id: gcsResult.id, 
+                url: gcsResult.url, 
+                title: file.originalname,
+                type: gcsResult.type,
+                size: file.size
+            };
+            if (item.type === "image") newImages.push(item);
+            else newVideos.push(item);
+        }
 
         drives[driveIndex].images = [...(drives[driveIndex].images || []), ...newImages];
         drives[driveIndex].videos = [...(drives[driveIndex].videos || []), ...newVideos];
@@ -642,7 +638,7 @@ app.patch("/api/drives/:id/settings", (req, res) => {
 //   SITE CUSTOMIZATION (protected — per user)
 // ────────────────────────────────────────────────
 
-app.post("/api/site", authMiddleware, upload.array("newPhotos"), (req, res) => {
+app.post("/api/site", authMiddleware, upload.array("newPhotos"), async (req, res) => {
     try {
         // Check storage limit
         const userPlan = getUserPlan(req.user.id);
@@ -672,14 +668,15 @@ app.post("/api/site", authMiddleware, upload.array("newPhotos"), (req, res) => {
 
         // Handle new uploaded photos
         if (req.files && req.files.length > 0) {
-            req.files.forEach(file => {
-                const publicUrl = `http://localhost:${PORT}/uploads/${file.filename}`;
+            for (const file of req.files) {
+                const gcsResult = await uploadToGCS(file);
                 settings.portfolioPhotos.push({
-                    id: file.filename,
-                    url: publicUrl,
-                    title: file.originalname.replace(/\.[^/.]+$/, "")
+                    id: gcsResult.id,
+                    url: gcsResult.url,
+                    title: file.originalname.replace(/\.[^/.]+$/, ""),
+                    size: file.size
                 });
-            });
+            }
         }
 
         saveUserSiteSettings(req.user.id, settings);

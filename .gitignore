@@ -4,3 +4,5 @@ uploads/
 *.log
 .env
 data/
+gcs-key.json
+users.json

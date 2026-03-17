@@ -19,5 +19,26 @@
     "email": "testadmin@example.com",
     "password": "$2b$10$dWjQEwUYc53DnB9G0HsvF.FUAKyrsI/p8qmc7RL/CHot6qcwBC4JS",
     "createdAt": "2026-03-13T11:06:10.581Z"
+  },
+  {
+    "id": "1773735401682",
+    "name": "Admin Test",
+    "email": "admin@test.com",
+    "password": "$2b$10$2bxGqfh4pkar7qF1U4ZhG./Y4FhObFdM3EIzuh3ufkAVqHA..Umoe",
+    "createdAt": "2026-03-17T08:16:41.682Z"
+  },
+  {
+    "id": "1773736472100",
+    "name": "Verified Userverified@test.com",
+    "email": "verified@test.compassword123",
+    "password": "$2b$10$EffDtdqRKFdIgpcgyvEfVOMqNxq74ObJGCuidKAxrNV7i7ScHRzyu",
+    "createdAt": "2026-03-17T08:34:32.103Z"
+  },
+  {
+    "id": "1773736547219",
+    "name": "Verified User",
+    "email": "verified@test.com",
+    "password": "$2b$10$gggbHtqkTrvuEjPiJEY2JuK85OvFsUi6Nk7L2TVcbBWneID4sefUS",
+    "createdAt": "2026-03-17T08:35:47.219Z"
   }
 ]
